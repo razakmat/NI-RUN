@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ $1 = "execute" ]
+then
+    ./interpreter $2
+else
+    echo "Unknown command: $1. Supported commands: execute"
+fi
