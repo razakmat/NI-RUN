@@ -7,6 +7,7 @@ Heap::Heap()
     m_data[0] = (unsigned char)RuntimeObject::Opcode::Null;
     m_capacity = 1000;
     m_size = 1;
+    m_index.push_back(0);
 }
 
 Heap::~Heap()
@@ -24,28 +25,30 @@ void Heap::Reallocate(const uint64_t size)
 
 uint64_t Heap::AssignLiteral(constant & obj)
 {
-    uint64_t ret = m_size;
+    int ret = m_size;
     visit(*this,obj);
     if (m_size == ret)
         return 0;
-    return ret;
+    m_index.push_back(ret);
+    return m_index.size() - 1;
 }
 
 runObj Heap::GetRunObject(uint32_t index)
 {
-    RuntimeObject::Opcode type = static_cast<RuntimeObject::Opcode>(readInt8_t(m_data,index));
-    index++;
+    uint32_t HeapIndex = m_index[index];
+    RuntimeObject::Opcode type = static_cast<RuntimeObject::Opcode>(readInt8_t(m_data,HeapIndex));
+    HeapIndex++;
     switch (type){
         case RuntimeObject::Opcode::Integer:
         {
             ROInteger num;
-            num.m_value = readInt32_t(m_data,index);
+            num.m_value = readInt32_t(m_data,HeapIndex);
             return runObj(num);
         }
         case RuntimeObject::Opcode::Boolean:
         {
             ROBoolean b;
-            b.m_value = readInt8_t(m_data,index);
+            b.m_value = readInt8_t(m_data,HeapIndex);
             return runObj(b);
         }
         case RuntimeObject::Opcode::Null:

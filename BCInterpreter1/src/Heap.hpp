@@ -2,11 +2,8 @@
 #define __HEAP_H__
 
 #include <vector>
-#include <cstring>
 #include "ProgramObject.hpp"
 #include "RuntimeObject.hpp"
-
-using namespace std;
 
 class Heap
 {
@@ -22,6 +19,7 @@ class Heap
         void operator ()(A & obj);
     private:
         void Reallocate(const uint64_t size);
+        vector<uint32_t> m_index;
         unsigned char * m_data;
         uint64_t m_capacity;
         uint64_t m_size;

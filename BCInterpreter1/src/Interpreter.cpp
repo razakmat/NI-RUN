@@ -7,7 +7,9 @@
 Interpreter::Interpreter(FMLVM * vm)
 : m_vm(vm)
 {
-    m_PC = get<OMethod>(m_vm->m_constant_pool[m_vm->m_entry_point]).m_start;
+    OMethod & method = get<OMethod>(m_vm->m_constant_pool[m_vm->m_entry_point]);
+    m_PC = method.m_start;
+    m_vm->m_frame_stack.PushStack(method.m_arguments + method.m_locals);
 }
 
 Interpreter::~Interpreter()
@@ -31,13 +33,13 @@ void Interpreter::operator()(ILiteral & literal)
     constant & obj = m_vm->m_constant_pool[literal.m_index];
 
     uint32_t pointer = m_vm->m_heap.AssignLiteral(obj);
-    m_vm->m_op_stack.push(pointer);
+    m_vm->m_op_stack.Push(pointer);
     m_PC++;
 }
 
 void Interpreter::operator()(IDrop & drop)
 {
-    m_vm->m_op_stack.pop();
+    m_vm->m_op_stack.Pop();
     m_PC++;
 }
 
@@ -45,13 +47,8 @@ void Interpreter::operator()(IPrint & print)
 {
     constant & obj = m_vm->m_constant_pool[print.m_index];
     OString & str = get<OString>(obj);
-    vector<uint32_t> args;
-    for (uint8_t i = 0; i < print.m_arguments; i++){
-        args.push_back(m_vm->m_op_stack.top());
-        m_vm->m_op_stack.pop();
-    }
-    print_out(args,str.m_characters);
-    m_vm->m_op_stack.push(0);
+    print_out(print.m_arguments,str.m_characters);
+    m_vm->m_op_stack.Push(0);
     m_PC++;
 }
 
@@ -67,8 +64,8 @@ void Interpreter::operator()(IJump & jump)
 
 void Interpreter::operator()(IBranch & branch)
 {
-    uint32_t pointer = m_vm->m_op_stack.top();
-    m_vm->m_op_stack.pop();
+    uint32_t pointer = m_vm->m_op_stack.Get();
+    m_vm->m_op_stack.Pop();
     runObj obj = m_vm->m_heap.GetRunObject(pointer);
 
     if (holds_alternative<RONull>(obj))
@@ -89,22 +86,83 @@ void Interpreter::operator()(IBranch & branch)
     this->operator()(jump);
 }
 
+void Interpreter::operator()(ILabel & label) 
+{
+    m_PC++;
+}
+
 template <typename A>
 void Interpreter::operator()(A & instruction)
 {
     throw "Something wrong!";
 }
 
-void Interpreter::print_out(vector<uint32_t> & args,const string & str)
+void Interpreter::operator()(IGet_Local & getLocal) 
 {
-    int16_t cur_arg = args.size() - 1;
+    uint32_t index = m_vm->m_frame_stack.GetLocal(getLocal.m_index);
+    m_vm->m_op_stack.Push(index);
+    m_PC++;
+}
+
+void Interpreter::operator()(ISet_Local & setLocal) 
+{
+    uint32_t pointer = m_vm->m_op_stack.Get();
+    m_vm->m_frame_stack.SetLocal(setLocal.m_index,pointer);
+    m_PC++;
+}
+
+void Interpreter::operator()(IGet_Global & getGlobal) 
+{
+    OString & obj = get<OString>(m_vm->m_constant_pool[getGlobal.m_index]);
+    uint32_t index = m_vm->m_frame_stack.GetGlobal(obj.m_characters);
+    m_vm->m_op_stack.Push(index);
+    m_PC++;
+}
+
+void Interpreter::operator()(ISet_Global & setGlobal) 
+{
+    uint32_t pointer = m_vm->m_op_stack.Get();
+    OString & obj = get<OString>(m_vm->m_constant_pool[setGlobal.m_index]);
+    m_vm->m_frame_stack.SetGlobal(obj.m_characters,pointer);
+    m_PC++;
+}
+
+void Interpreter::operator()(ICall_Function & call) 
+{
+    OString & obj = get<OString>(m_vm->m_constant_pool[call.m_index]);
+    uint32_t index = m_vm->m_frame_stack.GetGlobal(obj.m_characters);
+    OMethod & method= get<OMethod>(m_vm->m_constant_pool[index]);
+
+    m_vm->m_frame_stack.PushStack(method.m_arguments + method.m_locals);
+    for (int i = method.m_arguments - 1; i >= 0; i--)
+    {
+        uint32_t arg = m_vm->m_op_stack.Get();
+        m_vm->m_op_stack.Pop();
+        m_vm->m_frame_stack.SetLocal(i,arg);
+    }
+    for (int i = method.m_arguments; i < method.m_arguments + method.m_locals; i++)
+        m_vm->m_frame_stack.SetLocal(i,0);
+    m_PC++;
+    m_vm->m_frame_stack.SetReturn(m_PC);
+    m_PC = method.m_start;
+}
+
+void Interpreter::operator()(IReturn & ret) 
+{
+    uint32_t retAddress = m_vm->m_frame_stack.GetReturn();
+    m_PC = retAddress;
+    m_vm->m_frame_stack.PopStack();
+}
+
+void Interpreter::print_out(int16_t args,const string & str)
+{
     for (uint32_t i = 0; i < str.length(); i++)
     {
         if (str[i] == '~')
         {
-            if (cur_arg < 0)
+            if (args <= 0)
                 throw "Error : Wrong number of arguments in print.";
-            runObj obj = m_vm->m_heap.GetRunObject(args[cur_arg--]);
+            runObj obj = m_vm->m_heap.GetRunObject(m_vm->m_op_stack.Get(args--));
             if (ROInteger * oInt = get_if<ROInteger>(&obj))
             {
                 cout << oInt->m_value;
@@ -113,15 +171,15 @@ void Interpreter::print_out(vector<uint32_t> & args,const string & str)
             {
                 cout << boolalpha << oBool->m_value;
             }
-            else if (get_if<RONull>(&obj))
+            else if (RONull * oNull = get_if<RONull>(&obj))
             {
                 cout << "null";
             }
-            else if (get_if<ROArray>(&obj))
+            else if (ROArray * oArr = get_if<ROArray>(&obj))
             {
                 cout << "Array";
             }
-            else if (get_if<ROObject>(&obj))
+            else if (ROObject * oObj = get_if<ROObject>(&obj))
             {
                 cout << "Object";
             }

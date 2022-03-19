@@ -23,7 +23,12 @@ int main(int argc, char ** argv)
     delete parse;
 
     Interpreter * eval = new Interpreter(vm);
-    eval->Run();
+    try{
+        eval->Run();
+    }catch(const char * e)
+    {
+        cout << e << endl;
+    }
 
     delete eval;
     return 0;

@@ -96,6 +96,7 @@ void Parser::ReadInstruction(FMLVM * memory)
             m_pos += 2;
             OString str = get<OString>(memory->m_constant_pool[ins.m_index]);
             memory->m_labels.insert({str.m_characters,memory->m_instructions.size()+1});
+            memory->m_instructions.push_back(ins);
             break;
         }
         case Instruction::Opcode::Jump:
@@ -177,7 +178,21 @@ void Parser::ReadGlobals(FMLVM * memory)
     m_pos += 2;
     for (uint16_t i = 0; i < size; i++)
     {
-        memory->m_globals.push_back(readInt16_t(m_code,m_pos));
+        uint16_t index = readInt16_t(m_code,m_pos);
+        if (holds_alternative<OSlot>(memory->m_constant_pool[index]))
+        {
+            OString & str = get<OString>(memory->m_constant_pool[
+                get<OSlot>(memory->m_constant_pool[index]).m_name]);
+            memory->m_frame_stack.InsertGlobal(str.m_characters,0);
+        }
+        else if (holds_alternative<OMethod>(memory->m_constant_pool[index]))
+        {
+            OString & str = get<OString>(memory->m_constant_pool[
+                get<OMethod>(memory->m_constant_pool[index]).m_name]);
+            memory->m_frame_stack.InsertGlobal(str.m_characters,index);
+        }
+        else
+            throw "Error: Globals can contain only methods and slots.";
         m_pos += 2;
     }
 }
@@ -245,10 +260,8 @@ void Parser::ReadConstantPool(FMLVM * memory)
                 obj.m_length = readInt16_t(m_code,m_pos);
                 m_pos += 2;
                 for (uint16_t i = 0; i < obj.m_length; i++)
-                {
                     obj.m_members.push_back(readInt16_t(m_code,m_pos));
                     m_pos +=2;
-                }
                 memory->m_constant_pool.push_back(obj);
                 break;
             }
