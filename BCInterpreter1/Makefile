@@ -4,7 +4,7 @@ CXXLIBS=
 
 all: compile
 	
-compile: ./src/main.o ./src/Interpreter.o ./src/Instruction.o ./src/ProgramObject.o ./src/utils.o ./src/Heap.o ./src/FMLVM.o ./src/Parser.o
+compile: ./src/main.o ./src/Interpreter.o ./src/Instruction.o ./src/ProgramObject.o ./src/utils.o ./src/Heap.o ./src/Parser.o ./src/FrameStack.o
 	$(CXX) $(CXXFLAGS) $^ -o interpreter $(CXXLIBS)
 
 %.o: %.cpp
@@ -16,8 +16,9 @@ compile: ./src/main.o ./src/Interpreter.o ./src/Instruction.o ./src/ProgramObjec
 ./src/ProgramObject.o: ./src/ProgramObject.cpp
 ./src/utils.o: ./src/utils.cpp
 ./src/Heap.o: ./src/Heap.cpp ./src/ProgramObject.hpp ./src/RuntimeObject.hpp ./src/utils.hpp
-./src/FMLVM.o: ./src/FMLVM.cpp ./src/ProgramObject.hpp ./src/Instruction.hpp ./src/Heap.hpp ./src/FrameStack.hpp
 ./src/Parser.o: ./src/Parser.cpp ./src/FMLVM.hpp ./src/ProgramObject.hpp ./src/Instruction.hpp ./src/utils.hpp
+./src/OpStack.o: ./src/OpStack.cpp
+./src/FrameStack.o: ./src/FrameStack.cpp
 
 clean:	
 	rm ./src/*.o 
