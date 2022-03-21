@@ -16,10 +16,18 @@ int main(int argc, char ** argv)
     }
 
     Parser * parse = new Parser();
-    parse->LoadFile(argv[1]);
-
     FMLVM * vm = new FMLVM();
-    parse->ParseCode(vm);
+
+    try{
+        parse->LoadFile(argv[1]);
+        parse->ParseCode(vm);
+    }catch(const char * e)
+    {
+        cout << e << endl;
+        delete parse;
+        delete vm;
+        return 0;
+    }
     delete parse;
 
     Interpreter * eval = new Interpreter(vm);

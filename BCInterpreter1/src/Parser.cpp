@@ -6,6 +6,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <iostream>
 
 Parser::~Parser()
 {
@@ -17,6 +18,11 @@ void Parser::LoadFile(const string & name)
 {
     streampos size = 0;
     ifstream file(name,ios::binary);
+
+    if (!file.is_open())
+    {
+        throw "ERROR : Wrong file name!";
+    }
 
     size = file.tellg();
     file.seekg(0,ios::end);
@@ -202,7 +208,7 @@ void Parser::ReadEntryPoint(FMLVM * memory)
     memory->m_entry_point = readInt16_t(m_code,m_pos);
     m_pos += 2;
     if (m_pos != m_size)
-        throw "ERROR ERROR ERROR!";
+        throw "ERROR : After parsing file still has unread bytes of code!";
 }
 
 void Parser::ReadConstantPool(FMLVM * memory)

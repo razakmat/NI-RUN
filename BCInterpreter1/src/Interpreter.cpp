@@ -95,7 +95,7 @@ void Interpreter::operator()(ILabel & label)
 template <typename A>
 void Interpreter::operator()(A & instruction)
 {
-    throw "Something wrong!";
+    throw "Error : Some unknown instruction!";
 }
 
 void Interpreter::operator()(IGet_Local & getLocal) 
