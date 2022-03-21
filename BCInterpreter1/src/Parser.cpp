@@ -260,8 +260,10 @@ void Parser::ReadConstantPool(FMLVM * memory)
                 obj.m_length = readInt16_t(m_code,m_pos);
                 m_pos += 2;
                 for (uint16_t i = 0; i < obj.m_length; i++)
+                {
                     obj.m_members.push_back(readInt16_t(m_code,m_pos));
                     m_pos +=2;
+                }
                 memory->m_constant_pool.push_back(obj);
                 break;
             }

@@ -1,5 +1,6 @@
 #include "Heap.hpp"
 #include "utils.hpp"
+#include <cstring>
 
 Heap::Heap()
 {
@@ -25,7 +26,7 @@ void Heap::Reallocate(const uint64_t size)
 
 uint64_t Heap::AssignLiteral(constant & obj)
 {
-    int ret = m_size;
+    uint32_t ret = m_size;
     visit(*this,obj);
     if (m_size == ret)
         return 0;

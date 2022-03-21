@@ -3,6 +3,7 @@
 #include <variant>
 #include <vector>
 #include <iostream>
+#include "OpStack.hpp"
 
 Interpreter::Interpreter(FMLVM * vm)
 : m_vm(vm)
@@ -171,15 +172,15 @@ void Interpreter::print_out(int16_t args,const string & str)
             {
                 cout << boolalpha << oBool->m_value;
             }
-            else if (RONull * oNull = get_if<RONull>(&obj))
+            else if (get_if<RONull>(&obj))
             {
                 cout << "null";
             }
-            else if (ROArray * oArr = get_if<ROArray>(&obj))
+            else if (get_if<ROArray>(&obj))
             {
                 cout << "Array";
             }
-            else if (ROObject * oObj = get_if<ROObject>(&obj))
+            else if (get_if<ROObject>(&obj))
             {
                 cout << "Object";
             }

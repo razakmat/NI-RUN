@@ -2,6 +2,7 @@
 #define __INTERPRETER_H__
 
 #include "FMLVM.hpp"
+#include "OpStack.hpp"
 #include <vector>
 
 using namespace std;
