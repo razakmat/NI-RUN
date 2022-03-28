@@ -24,11 +24,15 @@ struct ProgramObject
 
 struct OInteger : public ProgramObject 
 {
+    OInteger() = default;
+    OInteger(int32_t v);
     int32_t m_value;
 };
 
 struct OBoolean : public ProgramObject 
 {
+    OBoolean() = default;
+    OBoolean(bool v);
     bool m_value;
 };
 

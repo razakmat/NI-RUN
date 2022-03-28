@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include "OpStack.hpp"
+#include "Dispatch.hpp"
 
 Interpreter::Interpreter(FMLVM * vm)
 : m_vm(vm)
@@ -155,37 +156,131 @@ void Interpreter::operator()(IReturn & ret)
     m_vm->m_frame_stack.PopStack();
 }
 
+void Interpreter::operator()(IArray & arr) 
+{
+    uint32_t init = m_vm->m_op_stack.Get();
+    m_vm->m_op_stack.Pop();
+    uint32_t size = m_vm->m_op_stack.Get();
+    m_vm->m_op_stack.Pop();
+    runObj obj = m_vm->m_heap.GetRunObject(size);
+    if (!holds_alternative<ROInteger>(obj))
+        throw "Error : Array size has to be integer.";
+    ROInteger num = get<ROInteger>(obj);
+    if (num.m_value < 0)
+        throw "Error : Size of array cannot be negative.";
+    uint32_t pointer = m_vm->m_heap.AssignArray(num.m_value,init);
+    m_vm->m_op_stack.Push(pointer);
+    m_PC++;
+}
+
+void Interpreter::operator()(IObject & obj) 
+{
+    OClass & Oclass = get<OClass>(m_vm->m_constant_pool[obj.m_index]);
+    vector<OMethod*> methods;
+    ROObject ROobj;
+    for (int32_t i = Oclass.m_length - 1; i >= 0; i--)
+    {
+        constant & cons = m_vm->m_constant_pool[Oclass.m_members[i]];
+        if (OSlot * oSlot = get_if<OSlot>(&cons))
+        {
+            OString & name = get<OString>(m_vm->m_constant_pool[oSlot->m_name]);
+            ROobj.m_fields.insert({name.m_characters,m_vm->m_op_stack.Get()});
+            m_vm->m_op_stack.Pop();
+        }
+        if (OMethod * oMethod = get_if<OMethod>(&cons))
+        {
+            OString & name = get<OString>(m_vm->m_constant_pool[oMethod->m_name]);
+            ROobj.m_methods.insert({name.m_characters,Oclass.m_members[i]});
+        }
+    }
+    ROobj.m_parent = m_vm->m_op_stack.Get();
+    m_vm->m_op_stack.Pop();
+    m_vm->m_op_stack.Push(m_vm->m_heap.AssignObject(ROobj));
+    m_PC++;
+}
+
+void Interpreter::operator()(IGet_Field & getField) 
+{
+    OString & str = get<OString>(m_vm->m_constant_pool[getField.m_index]);
+    uint32_t pointer = m_vm->m_op_stack.Get();
+    m_vm->m_op_stack.Pop();
+    pointer = m_vm->m_heap.GetSetField(pointer,str.m_characters);
+    m_vm->m_op_stack.Push(pointer);
+    m_PC++;    
+}
+
+void Interpreter::operator()(ISet_Field & setField) 
+{
+    OString & str = get<OString>(m_vm->m_constant_pool[setField.m_index]);
+    uint32_t value = m_vm->m_op_stack.Get();
+    m_vm->m_op_stack.Pop();
+    uint32_t object = m_vm->m_op_stack.Get();
+    m_vm->m_op_stack.Pop();
+    m_vm->m_heap.GetSetField(object,str.m_characters,value,false);
+    m_vm->m_op_stack.Push(value);
+    m_PC++;
+}
+
+void Interpreter::operator()(ICall_Method & callMethod) 
+{
+    OString & str = get<OString>(m_vm->m_constant_pool[callMethod.m_index]);
+    vector<uint32_t> args;
+    for (uint8_t i = callMethod.m_arguments - 1; i > 0; i--)
+    {
+        uint32_t arg = m_vm->m_op_stack.Get(i);
+        args.push_back(arg);
+    }
+    m_vm->m_op_stack.Pop(callMethod.m_arguments - 1);
+    uint32_t point_rec = m_vm->m_op_stack.Get();
+    runObj receiver = m_vm->m_heap.GetRunObject(point_rec);
+    m_vm->m_op_stack.Pop();
+
+    Dispatch disp(args,m_vm,str.m_characters,point_rec);
+
+    while (true)
+    {
+        if (ROObject * obj = get_if<ROObject>(&receiver))
+        {
+            uint16_t const_pointer = m_vm->m_heap.GetMethod(point_rec,str.m_characters);
+            if (const_pointer == 0)
+            {
+                point_rec = obj->m_parent;
+                receiver = m_vm->m_heap.GetRunObject(obj->m_parent);
+                continue;
+            }
+            OMethod & method = get<OMethod>(m_vm->m_constant_pool[const_pointer]);
+            m_vm->m_frame_stack.PushStack(method.m_arguments + method.m_locals + 1);
+            m_vm->m_frame_stack.SetLocal(0,point_rec);
+            for (int i = 1; i < method.m_arguments; i++)
+            {
+                m_vm->m_frame_stack.SetLocal(i,args[i - 1]);
+            }
+            for (int i = method.m_arguments; i < method.m_arguments + method.m_locals; i++)
+                m_vm->m_frame_stack.SetLocal(i + 1,0);
+            m_PC++;
+            m_vm->m_frame_stack.SetReturn(m_PC);
+            m_PC = method.m_start;
+            break;
+        }
+        else
+        {
+            visit(disp,receiver);
+            m_PC++;
+            break;
+        }
+    }
+}
+
 void Interpreter::print_out(int16_t args,const string & str)
 {
+    uint16_t num_args = args;
     for (uint32_t i = 0; i < str.length(); i++)
     {
         if (str[i] == '~')
         {
             if (args <= 0)
                 throw "Error : Wrong number of arguments in print.";
-            runObj obj = m_vm->m_heap.GetRunObject(m_vm->m_op_stack.Get(args--));
-            if (ROInteger * oInt = get_if<ROInteger>(&obj))
-            {
-                cout << oInt->m_value;
-            }
-            else if (ROBoolean * oBool = get_if<ROBoolean>(&obj))
-            {
-                cout << boolalpha << oBool->m_value;
-            }
-            else if (get_if<RONull>(&obj))
-            {
-                cout << "null";
-            }
-            else if (get_if<ROArray>(&obj))
-            {
-                cout << "Array";
-            }
-            else if (get_if<ROObject>(&obj))
-            {
-                cout << "Object";
-            }
-            else
-                throw "Error within print!";
+            cout << m_vm->m_heap.GetAsString(m_vm->m_op_stack.Get(args--));
         }
         else if (str[i] == '\\')
         {
@@ -216,4 +311,5 @@ void Interpreter::print_out(int16_t args,const string & str)
         else
             cout << str[i];
     }
+    m_vm->m_op_stack.Pop(num_args);
 }

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <variant>
 #include <vector>
-#include <unordered_map>
+#include <map>
 
 using namespace std;
 
@@ -36,15 +36,15 @@ struct RONull : public RuntimeObject
 
 struct ROArray : public RuntimeObject
 {
-    uint16_t m_length;
+    uint32_t m_length;
     vector<uint32_t> m_pointers;
 };
 
 struct ROObject : public RuntimeObject
 {
     uint32_t m_parent;
-    unordered_map<string,uint32_t> m_fields;
-    unordered_map<string,uint16_t> m_methods;
+    map<string,uint32_t> m_fields;
+    map<string,uint16_t> m_methods;
 };
 
 using runObj = variant<ROInteger,ROBoolean,RONull,ROArray,ROObject>;
