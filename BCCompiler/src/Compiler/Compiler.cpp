@@ -83,7 +83,9 @@ ASTValue * Compiler::visit(ASTVariable * variable)
     else
     {
         m_counter_locals++;
-        m_frame->m_varMap.insert({variable->m_name,m_frame->m_varMap.size()+m_frame->m_sizePrev});
+        auto it = m_frame->m_varMap.insert({variable->m_name,m_frame->m_varMap.size()+m_frame->m_sizePrev});
+        if (it.second == false)
+            throw "Error: Variable " + variable->m_name + " was already declared in current scope.";
         ISet_Local loc;
         loc.m_index = m_frame->m_varMap.size() + m_frame->m_sizePrev - 1;
         m_code->push_back(loc);
@@ -112,6 +114,8 @@ bool Compiler::FindName(const string & str, uint16_t & index)
     }while(cur);
 
     auto it = m_globalFrame->m_varMap.find(str);
+    if (it == m_globalFrame->m_varMap.end())
+        throw "Error: Variable " + str + " was not declared";
     index = it->second;
     return false;
 }
