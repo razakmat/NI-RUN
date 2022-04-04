@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     unsigned char * code = compile->Final(size);
     WriteToFile(code,size,argv[2]);
     delete [] code;
-  }catch(const char * e)
+  }catch(const string & e)
   {
         cout << e << endl;
   }
