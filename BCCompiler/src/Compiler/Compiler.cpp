@@ -249,6 +249,14 @@ ASTValue * Compiler::visit(ASTBlock * block)
     for (auto & x : block->m_stmt)
     {
         x->Accept(*this);
+        if (x != block->m_stmt[block->m_stmt.size()-1])
+        {
+            ins instruct = ((*m_code)[m_code->size()-1]);
+            if (holds_alternative<ILiteral>(instruct))
+            {
+                m_code->pop_back();
+            }
+        }
     }
     m_frame = m_frame->m_prev;
     return nullptr;
