@@ -68,14 +68,8 @@ ASTValue * Compiler::visit(ASTVariable * variable)
     variable->m_value->Accept(*this);
     if (m_globalFrame == m_frame)
     {
-        OString ostr;
-        ostr.m_characters = variable->m_name;
-        ostr.m_length = variable->m_name.size();
-        uint16_t index = InsertConst(ostr.m_characters,ostr);
-        OSlot slot;
-        slot.m_name = index;
-        m_constant_pool.push_back(slot);
-        m_globals.push_back(m_constant_pool.size() - 1);
+        uint16_t index;
+        FindName(variable->m_name,index);
         ISet_Global set;
         set.m_index = index;
         m_code->push_back(set);
@@ -83,7 +77,7 @@ ASTValue * Compiler::visit(ASTVariable * variable)
     else
     {
         m_counter_locals++;
-        auto it = m_frame->m_varMap.insert({variable->m_name,m_frame->m_varMap.size()+m_frame->m_sizePrev});
+        auto it =m_frame->m_varMap.insert({variable->m_name,m_frame->m_varMap.size()+m_frame->m_sizePrev});
         if (it.second == false)
             throw "Error: Variable " + variable->m_name + " was already declared in current scope.";
         ISet_Local loc;
@@ -151,10 +145,8 @@ ASTValue * Compiler::visit(ASTFunction * fun)
     m_codes.push_back(m_code);
     m_code = make_shared<vector<ins>>();
 
-    OString ostr;
-    ostr.m_characters = fun->m_name;
-    ostr.m_length = fun->m_name.size();
-    uint16_t index = InsertConst(ostr.m_characters,ostr);
+    uint16_t index;
+    FindName(fun->m_name,index);
 
     OMethod method;
     method.m_name = index;
@@ -212,7 +204,7 @@ ASTValue * Compiler::visit(ASTCallFunction * callFun)
         m_code->push_back(call);
     }
     else
-        throw "Error: function has to be global.";
+        throw (string)"Error: function has to be global.";
     return nullptr;
 }
 
@@ -261,9 +253,36 @@ ASTValue * Compiler::visit(ASTBlock * block)
                 m_code->pop_back();
             }
         }
+            
     }
     m_frame = m_frame->m_prev;
     return nullptr;
+}
+
+void Compiler::DefineGlobalFunction(ASTFunction * fun)
+{
+    OString ostr;
+    ostr.m_characters = fun->m_name;
+    ostr.m_length = fun->m_name.size();
+    InsertConst(ostr.m_characters,ostr);
+}
+
+
+void Compiler::DefineGlobalVar(ASTVariable * var)
+{
+    ASTNull * null = nullptr;
+    visit(null);
+    OString ostr;
+    ostr.m_characters = var->m_name;
+    ostr.m_length = var->m_name.size();
+    uint16_t index = InsertConst(ostr.m_characters,ostr);
+    OSlot slot;
+    slot.m_name = index;
+    m_constant_pool.push_back(slot);
+    m_globals.push_back(m_constant_pool.size() - 1);
+    ISet_Global set;
+    set.m_index = index;
+    m_code->push_back(set);
 }
 
 ASTValue * Compiler::visit(ASTTop * top) 
@@ -275,6 +294,14 @@ ASTValue * Compiler::visit(ASTTop * top)
     ostr.m_length = ostr.m_characters.size();
     uint16_t index = InsertConst(str,ostr);
 
+    for (uint32_t i = 0; i < top->m_stmt.size(); i++)
+    {
+        if (ASTVariable * var = dynamic_cast<ASTVariable*>(top->m_stmt[i]))
+            DefineGlobalVar(var);
+        else if (ASTFunction * fun = dynamic_cast<ASTFunction*>(top->m_stmt[i]))
+            DefineGlobalFunction(fun);
+    }
+    
     for (uint32_t i = 0; i < top->m_stmt.size(); i++)
         top->m_stmt[i]->Accept(*this);
 

@@ -39,6 +39,11 @@ int main(int argc, char** argv)
 
   try{
     ast->Accept(*compile.get());
+  }catch(const string & e){
+        cout << e << endl;
+  }
+
+  try{
     uint64_t size;
     unsigned char * code = compile->Final(size);
     WriteToFile(code,size,argv[2]);

@@ -41,6 +41,8 @@ class Compiler : public Visitor
     protected:
         uint16_t InsertConst(const string & str, constant con);
         bool FindName(const string & str, uint16_t & index);
+        void DefineGlobalVar(ASTVariable * var);
+        void DefineGlobalFunction(ASTFunction * fun);
         void reallocate(unsigned char * data,uint64_t size, uint64_t max);
 
         template <typename T>
