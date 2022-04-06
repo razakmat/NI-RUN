@@ -2,6 +2,7 @@
 #define __HEAP_H__
 
 #include <vector>
+#include <string>
 #include "ProgramObject.hpp"
 #include "RuntimeObject.hpp"
 
