@@ -2,6 +2,7 @@
 #define JSONTOAST_H
 
 #include <fstream>
+#include <string>
 #include "./nlohmann/json.hpp"
 #include "../Structures/AST.h"
 
