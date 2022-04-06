@@ -6,6 +6,7 @@
 #include "../Compiler/Compiler.hpp"
 #include <memory>
 #include <fstream>
+#include <string>
 
 using namespace std;
 
