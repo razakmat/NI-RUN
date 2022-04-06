@@ -4,6 +4,7 @@
 #include <vector>
 #include <stack>
 #include <unordered_map>
+#include <string>
 #include "ProgramObject.hpp"
 #include "Instruction.hpp"
 #include "Heap.hpp"
