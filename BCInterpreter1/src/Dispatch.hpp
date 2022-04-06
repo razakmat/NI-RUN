@@ -4,6 +4,7 @@
 #include "RuntimeObject.hpp"
 #include "FMLVM.hpp"
 #include <vector>
+#include <string>
 
 using namespace std;
 
