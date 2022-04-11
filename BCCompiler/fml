@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if [ $1 = "compile" ]
 then
     ./Compiler $2 $2.bc

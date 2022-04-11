@@ -4,7 +4,7 @@ CXXLIBS=
 OBJECTS= ./obj/main.o ./obj/JSONToAST.o ./obj/Instruction.o ./obj/ProgramObject.o ./obj/utils.o ./obj/AST.o ./obj/Compiler.o
 
 all: compile
-	
+
 compile: $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o Compiler $(CXXLIBS)
 
