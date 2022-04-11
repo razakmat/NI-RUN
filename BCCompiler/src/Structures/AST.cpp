@@ -1,15 +1,5 @@
-
-
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <queue>
-#include <stack>
-#include <cstdint>
-#include <string>
-#include <vector>
-#include "../Visitor/Visitor.h"
 #include "../Structures/AST.h"
+#include "../Visitor/Visitor.h"
 
 using namespace std;
 

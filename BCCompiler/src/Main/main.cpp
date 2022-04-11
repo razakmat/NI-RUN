@@ -1,11 +1,9 @@
-
-#include <fstream>
-#include <iostream>
 #include "../Structures/AST.h"
 #include "../JSON/JSONToAST.h"
 #include "../Compiler/Compiler.hpp"
 #include <memory>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 using namespace std;
@@ -21,7 +19,7 @@ int main(int argc, char** argv)
 {
   if (argc != 3){
     cout << "Wrong number of arguments" << endl;
-    return 0;
+    return 1;
   }
 
   ifstream file(argv[1]);
@@ -33,7 +31,7 @@ int main(int argc, char** argv)
     ast = converter.convert(file);
   }catch(ParserException& e){
     cout << e.what() << endl;
-    return 0;
+    return 1;
   }
 
   shared_ptr<Compiler> compile = make_shared<Compiler>();
@@ -42,6 +40,7 @@ int main(int argc, char** argv)
     ast->Accept(*compile.get());
   }catch(const string & e){
         cout << e << endl;
+        return 1;
   }
 
   try{

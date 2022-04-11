@@ -110,7 +110,7 @@ void ICall_Method::writeByteCode(unsigned char * code, uint16_t & size)
 {
     writeInt8_t(code,(uint8_t)Opcode::Call_Method);
     writeInt16_t(code+1,m_index);
-    writeInt8_t(code+1,m_arguments);
+    writeInt8_t(code+3,m_arguments);
     size = 4;
 }
 

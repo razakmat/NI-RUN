@@ -1,10 +1,7 @@
 #include "JSONToAST.h"
-
-#include <fstream>
-#include <cstdint>
-#include <string>
-#include <vector>
 #include "./nlohmann/json.hpp"
+
+#include <vector>
 
 using namespace std;
 using json = nlohmann::json;

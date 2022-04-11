@@ -5,10 +5,13 @@
 #include "../Structures/Instruction.hpp"
 #include "../Visitor/Visitor.h"
 #include "../Structures/AST.h"
+
+#include <variant>
 #include <vector>
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include <stack>
 
 
 using namespace std;
@@ -41,10 +44,11 @@ class Compiler : public Visitor
         ASTValue * visit ( ASTCallMethod * call);
     protected:
         uint16_t InsertConst(const string & str, constant con);
-        bool FindName(const string & str, uint16_t & index);
+        uint16_t CreateStringToConst(const string & str);
+        bool FindName(const string & str, uint16_t & index,bool global = false);
         void DefineGlobalVar(ASTVariable * var);
         void DefineGlobalFunction(ASTFunction * fun);
-        void reallocate(unsigned char * data,uint64_t size, uint64_t max);
+        void reallocate(unsigned char *& data,uint64_t size, uint64_t max);
 
         template <typename T>
         void SetAndPush(T i, uint16_t index);
@@ -60,8 +64,13 @@ class Compiler : public Visitor
         };
         shared_ptr<frame> m_frame;
         shared_ptr<frame> m_globalFrame;
+        vector<int> m_vector_locals;
+        stack<bool> m_to_drop;
         int m_counter_locals;
         uint16_t m_entry;
+        const string m_nameOfmain = "λ:";
+        int m_counterLabel = 0;
+        bool m_method = false;
 };
 
 #endif

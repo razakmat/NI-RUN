@@ -3,10 +3,6 @@
 
 #include "../Structures/AST.h"
 
-using namespace std;
-
-
-
 class Visitor
 {
     public:
@@ -30,14 +26,6 @@ class Visitor
         virtual ASTValue * visit ( ASTAssignField * assignFie) = 0;
         virtual ASTValue * visit ( ASTAccessField * accessFie) = 0;
         virtual ASTValue * visit ( ASTCallMethod * call) = 0;
-
-
 };
-
-
-
-
-
-
 
 #endif
