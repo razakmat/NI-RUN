@@ -1,9 +1,11 @@
+
+#include <fstream>
+#include <iostream>
 #include "../Structures/AST.h"
 #include "../JSON/JSONToAST.h"
 #include "../Compiler/Compiler.hpp"
 #include <memory>
 #include <fstream>
-#include <iostream>
 #include <string>
 
 using namespace std;
@@ -34,6 +36,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
+
   shared_ptr<Compiler> compile = make_shared<Compiler>();
 
   try{
@@ -52,7 +55,7 @@ int main(int argc, char** argv)
   {
         cout << e << endl;
   }
-  
+
   delete ast;
 
   return 0;

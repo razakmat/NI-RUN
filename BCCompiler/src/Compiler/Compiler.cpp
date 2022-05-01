@@ -1,8 +1,7 @@
 #include "Compiler.hpp"
-#include "../Utils/utils.hpp"
-
+#include <variant>
 #include <cstring>
-
+#include "../Utils/utils.hpp"
 using namespace std;
 
 Compiler::Compiler()
@@ -392,6 +391,13 @@ ASTValue * Compiler::visit(ASTLoop * loop)
     IBranch branch;
     branch.m_index = indexStart;
     m_code->push_back(branch);
+
+    if (!m_to_drop.top())
+    {
+        ASTNull null;
+        null.Accept(*this);
+    }
+
     return nullptr;
 }
 
@@ -524,16 +530,127 @@ ASTValue * Compiler::visit(ASTCallMethod * call)
 
 ASTValue * Compiler::visit(ASTArray * arr) 
 {
+    if (dynamic_cast<ASTInteger*>(arr->m_value) ||
+        dynamic_cast<ASTNull*>(arr->m_value) ||
+        dynamic_cast<ASTBoolean*>(arr->m_value) || 
+        dynamic_cast<ASTAccessVariable*>(arr->m_value) ||
+        dynamic_cast<ASTAccessField*>(arr->m_value) ||
+        dynamic_cast<ASTAccessArray*>(arr->m_value))
+    {
+        m_to_drop.push(false);
+        arr->m_size->Accept(*this);
+        arr->m_value->Accept(*this);
+        m_to_drop.pop();
+        IArray iarr;
+        iarr.m_index = 0;
+        m_code->push_back(iarr);
+        if (m_to_drop.top())
+            m_code->push_back(IDrop());
+        return nullptr;
+    }
+    string name_array = m_array_number + "_array";
+    string name_control = m_array_number + "_control";
+    string name_size = m_array_number + "_size";
+    string name_incr = "+";
+    string name_less = "<";
+    
+    ASTVariable * size = new ASTVariable(name_size,arr->m_size);
+
+    ASTNull * null = new ASTNull();
+    ASTAccessVariable * accsize = new ASTAccessVariable(name_size);
+    ASTArray * ar = new ASTArray(accsize,null);
+    ASTVariable * array = new ASTVariable(name_array,ar);
+    ASTAccessVariable * accarray = new ASTAccessVariable(name_array);
+
+
+    ASTInteger * int0 = new ASTInteger(0);
+    ASTVariable * control = new ASTVariable(name_control,int0);
+    ASTAccessVariable * acccontrol = new ASTAccessVariable(name_control);
+
+    ASTAssignArray * assarray = new ASTAssignArray(accarray,acccontrol,arr->m_value);
+
+    ASTInteger * int1 = new ASTInteger(1);
+
+    vector<AST*> arg;
+    arg.push_back(int1);
+    acccontrol = new ASTAccessVariable(name_control);
+    ASTCallMethod * incr = new ASTCallMethod(acccontrol,name_incr,arg);
+    ASTAssignVariable * inccontrol = new ASTAssignVariable(name_control,incr);
+
+    arg.clear();
+    accsize = new ASTAccessVariable(name_size);
+    arg.push_back(accsize);
+    acccontrol = new ASTAccessVariable(name_control);
+    ASTCallMethod * opless = new ASTCallMethod(acccontrol,name_less,arg);
+
+    arg.clear();
+    arg.push_back(assarray);
+    arg.push_back(inccontrol);
+    ASTBlock * block = new ASTBlock(arg);
+    ASTLoop * loop = new ASTLoop(opless,block);
+
+
+    m_to_drop.push(true);
+
+    size->Accept(*this);
+    array->Accept(*this);
+    control->Accept(*this);
+    loop->Accept(*this);
+
+    m_to_drop.pop();
+    accarray->Accept(*this);
+
+    assarray->m_value = new ASTNull();
+    size->m_value = new ASTNull();
+
+    delete loop;
+    delete control;
+    delete array;
+    delete size;
+
     return nullptr;
 }
 
 ASTValue * Compiler::visit(ASTAssignArray * assignArr) 
 {
+    m_to_drop.push(false);
+    assignArr->m_array->Accept(*this);
+    assignArr->m_index->Accept(*this);
+    assignArr->m_value->Accept(*this);
+    m_to_drop.pop();
+
+    OString ostr;
+    ostr.m_characters = "set";
+    ostr.m_length = 3;
+
+    ICall_Method call;
+    call.m_index = InsertConst(ostr.m_characters,ostr); 
+    call.m_arguments = 3;
+    m_code->push_back(call);
+
+    if (m_to_drop.top())
+        m_code->push_back(IDrop());
     return nullptr;
 }
 
 ASTValue * Compiler::visit(ASTAccessArray * accessArr) 
 {
+    m_to_drop.push(false);
+    accessArr->m_array->Accept(*this);
+    accessArr->m_index->Accept(*this);
+    m_to_drop.pop();
+
+    OString ostr;
+    ostr.m_characters = "get";
+    ostr.m_length = 3;
+
+    ICall_Method call;
+    call.m_index = InsertConst(ostr.m_characters,ostr); 
+    call.m_arguments = 2;
+    m_code->push_back(call);
+
+    if (m_to_drop.top())
+        m_code->push_back(IDrop());
     return nullptr;
 }
 
@@ -562,6 +679,10 @@ unsigned char * Compiler::Final(uint64_t & size)
         if (OMethod * m = get_if<OMethod>(&x))
         {
             potential += (m->m_length * 4);
+        }
+        if (OString * m = get_if<OString>(&x))
+        {
+            potential += m->m_length + 8;
         }
         if (size + potential >= max)
         {

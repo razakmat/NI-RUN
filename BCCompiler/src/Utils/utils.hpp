@@ -22,4 +22,6 @@ void writeInt32_t(unsigned char * code,uint32_t value);
 
 void writeString(unsigned char * code,const string & name);
 
+
+
 #endif // __UTILS_H__

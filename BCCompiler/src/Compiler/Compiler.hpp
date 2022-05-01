@@ -5,8 +5,6 @@
 #include "../Structures/Instruction.hpp"
 #include "../Visitor/Visitor.h"
 #include "../Structures/AST.h"
-
-#include <variant>
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -71,6 +69,7 @@ class Compiler : public Visitor
         const string m_nameOfmain = "λ:";
         int m_counterLabel = 0;
         bool m_method = false;
+        int m_array_number = 0;
 };
 
 #endif
