@@ -1,0 +1,162 @@
+---
+title: "FML implementation performance evaluation"
+author: "Matej Razak"
+date: "30/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, include=FALSE}
+load_or_install <- function(package) {
+    if (!require(package, character.only = TRUE)) {
+        install.packages(package)
+        if (!require(package, character.only = TRUE)) {
+            stop(paste0("Cannot install package ", package));
+        }
+    }
+}
+
+load_or_install("dplyr")
+load_or_install("readr")
+load_or_install("tidyr")
+load_or_install("ggplot2")
+load_or_install("scales")
+load_or_install("grid")
+load_or_install("gridExtra")
+load_or_install("stringr")
+load_or_install("tools")
+
+draw_grid <- function(sets, f) {
+  graphs <- lapply(sets, FUN=f)
+  #print(graphs)
+  #remove_label <- function(g) { g + theme(legend.position = "none") }
+  #graphs <- lapply(graphs, FUN=remove_label)
+  do.call(grid.arrange, graphs)
+}
+```
+
+```{r data, include=FALSE}
+timing_log <- read_csv("timing_log.csv")
+#timing_log <- read_csv("~/Workspace/FMLBench/timing_log.csv")
+```
+This report describes the results of a performance comparison between multiple implementations of the FML language using a suite of benchmark programs.
+
+## System description
+
+The benchmark was executed using the followins system specs.
+
+| Parameter                      | Spec                  | Notes |
+| :---------------               | :-------------        | :---- |
+| Processor                      | Intel® Core™ i7-10750H CPU @ 2.60GHz  |    |
+| Memory                         | 16GB DDR4 2933 Mhz             |       |
+| OS & kernel                    | Ubuntu 20.04.1 - Linux 5.13.0    |       |
+
+## Benchmarks
+
+The experiment was run using three benchmark programs. Each benchmark was executed 10 times (iterations 1-10).
+
+| Label                          | Description           | URL                                                                       |
+| :---------------               | :-------------        | :---------                                                                |
+| `langtons_ant`                 | Langton's ant         | https://github.com/kondziu/FMLBench/blob/main/benchmarks/langtons_ant.fml |
+| `brainfuck`                    | Brainfuck interpreter | https://github.com/kondziu/FMLBench/blob/main/benchmarks/brainfuck.fml    |
+| `sudoku`                       | Sudoku solver         | https://github.com/kondziu/FMLBench/blob/main/benchmarks/sudoku.fml       |
+
+### Langton's ant
+
+An ant moves on a world of square tiles. The ant has position on a specific tile and an orientation (up, down, left, right). The tiles are initiall all white, but each tile can be either black or white. The program runs for 201 steps. In each step the ant moves one tile according to the following rules.
+
+* If the ant is on a while tile, it changes the tile's color to black, rotates clockwise and moves one tile forward.
+* If the ant is on a black tile, it changes the tile's color to white, rotates counterclockwise and moves one tile forward.
+
+The board and the ant are printed after each step. The world starts empty and expands whenever the ant moves to a new tile.
+
+[[wiki]](https://en.wikipedia.org/wiki/Langton%27s_ant)
+
+### Brainfuck interpreter
+
+An implementation of the Brainfuck language executing a specific program.
+
+The language contains 8 instructions `.,<>[]+-`, 7 of which are expressable in FML (FML cannot read from stdin, preventing it from implementing `,`). The interpreter has a memory of 512 integers and a memory pointer. The interpreter moves the pointer to the left and right (`<` and `>`), increments and decrements the values at the pointer (`+` and `-`), and prints out the value of a cell as ASCII (`.`). `[` and `]` imeplement loops: `[` checks if the value of the cell at the pointer is 0, and proceeds to a matching `]` if it is or executes the next statement if it isn't. `]` returns to the matching `[`.
+
+In this implementation the memory consists of 512 32bit integers. The memory pointer is initially positioned in the middle.
+
+The program executed by the benchmark prints out a poem in 429 instructions.
+
+[[wiki]](https://en.wikipedia.org/wiki/Brainfuck)
+
+### Sudoku solver
+
+A brute force sudoku solver. It starts from the top-left corner of the board, adds a number from 1-9 (in order) in the first available empty spot and checks whether the board is still valid. It continues until the end of the board and backtracks to if the board becomes invalid at any point.
+
+[[wiki]](https://en.wikipedia.org/wiki/Sudoku)
+
+## Implementations
+
+The experiment was run using the following implementations of the FML language. 
+
+| Label                          | Description                       | URL                                    |
+| :---------------               | :-------------                    | :---------                             |
+| `reference/target/release/fml` | The reference FML implementation. | https://github.com/kondziu/FML         |
+| `/fml`                         | My implementation of bytecodeInterpreter|   https://github.com/razakmat/NI-RUN |
+
+The `reference/target/release/fml` implementation is written in Rust. The stack consists of a bytecode compiler and a bytecode interpreter. Execution times include parsing, compilation, and execution. The implementation does not garbage collect, so it does not incur garbage-collection-related overheads. 
+
+The `/fml` implementation is written in C++. As parser is used parser from reference to convert ast to json, then my own bytecode compiler and bytecode interpreter.
+No garbage collection.
+
+The AST interpreter was skipped, because there are some bugs, that are yet not fixed.
+
+## Correctness 
+
+The benchmarks were sanity checked after execution by comparing outputs.
+
+```{r correctness, echo=FALSE, fig.width=15}
+correctness1 <- setNames(c("#bd320b","#21e6ff"), c(FALSE, TRUE))
+correctness2 <- setNames(c("red","blue"), c(FALSE, TRUE))
+correctness_for_implementation <- function(implementation, rows=1) {
+  timing_log %>% 
+    filter(`FML implementation` == !!implementation)  %>%
+    ggplot(aes(x=iteration, y=benchmark)) + 
+    geom_tile(aes(fill=correct, color=correct, width=0.7, height=0.7), size=0.5) + 
+    scale_x_discrete(breaks=1:10, limits=factor(1:10)) +
+    scale_fill_manual(values=correctness1) +
+    scale_color_manual(values=correctness2) +
+    #scale_fill_continuous(function(x) {print(x); ifelse(x < 0, "#bd320b","#21e6ff")}) +
+    theme_dark() + 
+    theme(panel.grid.major = element_blank(), axis.ticks = element_blank(), axis.title.y = element_blank(), legend.position = "none") +
+    ggtitle(implementation)
+}
+implementations <- timing_log %>% pull(`FML implementation`) %>% unique()
+draw_grid(implementations, correctness_for_implementation)
+```
+
+#### Observations
+
+Both implementation give same results.
+
+## Execution time
+
+```{r execution-time, echo=FALSE, fig.width=15}
+violins_for_benchmark <- function (benchmark, title) {
+  ggplot(timing_log %>% filter(benchmark==!!benchmark), aes(x=`FML implementation`, y=millis)) + 
+    geom_violin(trim=FALSE, aes(color=`FML implementation`, fill=`FML implementation`)) + 
+    theme_dark() + 
+    theme(panel.grid.major = element_blank(), axis.ticks.x = element_blank(), legend.position = "none", axis.title.x = element_blank()) +
+    ylab("Elapsed time [ms]") +
+    ggtitle(title)
+}
+
+grid.arrange(
+  violins_for_benchmark("langtons_ant", "Langton's ant"),
+  violins_for_benchmark("brainfuck", "Brainfuck interpreter") +  theme(axis.title.y = element_blank()),
+  violins_for_benchmark("sudoku", "Sudoku solver") +  theme(axis.title.y = element_blank()),
+  ncol=3)
+```
+
+#### Observations
+
+My implementation is slighty slower for 2 shorter tests, but is slighty faster for for bigger test sudoku solver. Brainfuck test and Langtons ant test could be explained be my implementation need to convert reference ast to json and from json to my c++ ast. Another possibility is that my compiler and inicialization of interpreter is slower, which would explain why longer sudoku test is faster with my implementation.
+Both implementation take consistent times for every test execution.
