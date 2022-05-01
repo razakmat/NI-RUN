@@ -5,7 +5,6 @@
 #include <variant>
 #include <vector>
 #include <map>
-#include <string>
 
 using namespace std;
 
@@ -38,13 +37,13 @@ struct RONull : public RuntimeObject
 struct ROArray : public RuntimeObject
 {
     uint32_t m_length;
-    vector<uint32_t> m_pointers;
+    vector<uint64_t> m_pointers;
 };
 
 struct ROObject : public RuntimeObject
 {
-    uint32_t m_parent;
-    map<string,uint32_t> m_fields;
+    uint64_t m_parent;
+    map<string,uint64_t> m_fields;
     map<string,uint16_t> m_methods;
 };
 

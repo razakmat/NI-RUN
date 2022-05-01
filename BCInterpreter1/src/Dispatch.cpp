@@ -1,6 +1,6 @@
 #include "Dispatch.hpp"
 
-Dispatch::Dispatch(vector<uint32_t> & args, FMLVM * vm, const string & name, uint32_t point_rec)
+Dispatch::Dispatch(vector<uint64_t> & args, FMLVM * vm, const string & name, uint64_t point_rec)
 : m_args(args) , m_vm(vm), m_name(name), m_point_rec(point_rec)
 {
     
@@ -87,7 +87,7 @@ void Dispatch::operator ()(ROInteger & integer)
 }
 
 void Dispatch::operator ()(RONull & nul) 
-{
+{ 
     if (m_args.size() != 1)
         throw "Error: wrong number of arguments in methodCall for null.";
     runObj arg = m_vm->m_heap.GetRunObject(m_args[0]);

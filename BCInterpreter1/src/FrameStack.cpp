@@ -30,7 +30,7 @@ void FrameStack::PopStack()
     delete cur;
 }
 
-void FrameStack::SetLocal(uint32_t index, uint32_t pointer) 
+void FrameStack::SetLocal(uint16_t index, uint64_t pointer) 
 {
     m_local->m_locals[index] = pointer;
 }
@@ -45,12 +45,12 @@ uint32_t FrameStack::GetReturn()
     return m_local->m_ret;
 }
 
-uint32_t FrameStack::GetLocal(uint32_t index) 
+uint64_t FrameStack::GetLocal(uint16_t index) 
 {
     return m_local->m_locals[index];
 }
 
-void FrameStack::SetGlobal(const string & name, uint32_t pointer) 
+void FrameStack::SetGlobal(const string & name, uint64_t pointer) 
 {
     auto it = m_global.m_GlobalMap.find(name);
     if (it == m_global.m_GlobalMap.end())
@@ -58,7 +58,7 @@ void FrameStack::SetGlobal(const string & name, uint32_t pointer)
     it->second = pointer;
 }
 
-uint32_t FrameStack::GetGlobal(const string & name) 
+uint64_t FrameStack::GetGlobal(const string & name) 
 {
     auto it = m_global.m_GlobalMap.find(name);
     if (it == m_global.m_GlobalMap.end())
@@ -66,7 +66,7 @@ uint32_t FrameStack::GetGlobal(const string & name)
     return it->second;
 }
 
-void FrameStack::InsertGlobal(const string & name, uint32_t index) 
+void FrameStack::InsertGlobal(const string & name, uint64_t index) 
 {
     m_global.m_GlobalMap.insert({name,index});
 }

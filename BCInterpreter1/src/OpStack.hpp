@@ -9,11 +9,11 @@ using namespace std;
 class OpStack
 {
     public:
-        uint32_t Get(int i = 1);
+        uint64_t Get(int i = 1);
         void Pop(int i = 1);
-        void Push(uint32_t i);
+        void Push(uint64_t i);
     private:
-    vector<uint32_t> m_stack;
+    vector<uint64_t> m_stack;
 };
 
 

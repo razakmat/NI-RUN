@@ -4,14 +4,13 @@
 #include "RuntimeObject.hpp"
 #include "FMLVM.hpp"
 #include <vector>
-#include <string>
 
 using namespace std;
 
 class Dispatch
 {
     public:
-        Dispatch(vector<uint32_t> & args, FMLVM * vm,const string & name,uint32_t point_rec);
+        Dispatch(vector<uint64_t> & args, FMLVM * vm,const string & name,uint64_t point_rec);
         void operator ()(ROBoolean & boolean);
         void operator ()(ROInteger & integer);
         void operator ()(RONull & nul);
@@ -23,10 +22,10 @@ class Dispatch
     private:
         void RetBool(bool value);
         void RetInt(int32_t value);
-        vector<uint32_t> & m_args;
+        vector<uint64_t> & m_args;
         FMLVM * m_vm;
         const string & m_name;
-        uint32_t m_point_rec;
+        uint64_t m_point_rec;
 };
 
 

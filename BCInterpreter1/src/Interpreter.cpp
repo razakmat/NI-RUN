@@ -21,9 +21,12 @@ Interpreter::~Interpreter()
 
 void Interpreter::Run()
 {
-    
     while (m_PC < m_vm->m_instructions.size())
     {
+        if (m_PC == 2539)
+        {
+            m_PC = 2539;
+        }
         ins & instruction = m_vm->m_instructions[m_PC];
 
         visit(*this,instruction);
@@ -34,7 +37,7 @@ void Interpreter::operator()(ILiteral & literal)
 {
     constant & obj = m_vm->m_constant_pool[literal.m_index];
 
-    uint32_t pointer = m_vm->m_heap.AssignLiteral(obj);
+    uint64_t pointer = m_vm->m_heap.AssignLiteral(obj);
     m_vm->m_op_stack.Push(pointer);
     m_PC++;
 }
@@ -66,7 +69,7 @@ void Interpreter::operator()(IJump & jump)
 
 void Interpreter::operator()(IBranch & branch)
 {
-    uint32_t pointer = m_vm->m_op_stack.Get();
+    uint64_t pointer = m_vm->m_op_stack.Get();
     m_vm->m_op_stack.Pop();
     runObj obj = m_vm->m_heap.GetRunObject(pointer);
 
@@ -101,14 +104,14 @@ void Interpreter::operator()(A & instruction)
 
 void Interpreter::operator()(IGet_Local & getLocal) 
 {
-    uint32_t index = m_vm->m_frame_stack.GetLocal(getLocal.m_index);
+    uint64_t index = m_vm->m_frame_stack.GetLocal(getLocal.m_index);
     m_vm->m_op_stack.Push(index);
     m_PC++;
 }
 
 void Interpreter::operator()(ISet_Local & setLocal) 
 {
-    uint32_t pointer = m_vm->m_op_stack.Get();
+    uint64_t pointer = m_vm->m_op_stack.Get();
     m_vm->m_frame_stack.SetLocal(setLocal.m_index,pointer);
     m_PC++;
 }
@@ -116,14 +119,14 @@ void Interpreter::operator()(ISet_Local & setLocal)
 void Interpreter::operator()(IGet_Global & getGlobal) 
 {
     OString & obj = get<OString>(m_vm->m_constant_pool[getGlobal.m_index]);
-    uint32_t index = m_vm->m_frame_stack.GetGlobal(obj.m_characters);
+    uint64_t index = m_vm->m_frame_stack.GetGlobal(obj.m_characters);
     m_vm->m_op_stack.Push(index);
     m_PC++;
 }
 
 void Interpreter::operator()(ISet_Global & setGlobal) 
 {
-    uint32_t pointer = m_vm->m_op_stack.Get();
+    uint64_t pointer = m_vm->m_op_stack.Get();
     OString & obj = get<OString>(m_vm->m_constant_pool[setGlobal.m_index]);
     m_vm->m_frame_stack.SetGlobal(obj.m_characters,pointer);
     m_PC++;
@@ -132,13 +135,13 @@ void Interpreter::operator()(ISet_Global & setGlobal)
 void Interpreter::operator()(ICall_Function & call) 
 {
     OString & obj = get<OString>(m_vm->m_constant_pool[call.m_index]);
-    uint32_t index = m_vm->m_frame_stack.GetGlobal(obj.m_characters);
+    uint64_t index = m_vm->m_frame_stack.GetGlobal(obj.m_characters);
     OMethod & method= get<OMethod>(m_vm->m_constant_pool[index]);
 
     m_vm->m_frame_stack.PushStack(method.m_arguments + method.m_locals);
     for (int i = method.m_arguments - 1; i >= 0; i--)
     {
-        uint32_t arg = m_vm->m_op_stack.Get();
+        uint64_t arg = m_vm->m_op_stack.Get();
         m_vm->m_op_stack.Pop();
         m_vm->m_frame_stack.SetLocal(i,arg);
     }
@@ -158,9 +161,9 @@ void Interpreter::operator()(IReturn & ret)
 
 void Interpreter::operator()(IArray & arr) 
 {
-    uint32_t init = m_vm->m_op_stack.Get();
+    uint64_t init = m_vm->m_op_stack.Get();
     m_vm->m_op_stack.Pop();
-    uint32_t size = m_vm->m_op_stack.Get();
+    uint64_t size = m_vm->m_op_stack.Get();
     m_vm->m_op_stack.Pop();
     runObj obj = m_vm->m_heap.GetRunObject(size);
     if (!holds_alternative<ROInteger>(obj))
@@ -168,7 +171,7 @@ void Interpreter::operator()(IArray & arr)
     ROInteger num = get<ROInteger>(obj);
     if (num.m_value < 0)
         throw "Error : Size of array cannot be negative.";
-    uint32_t pointer = m_vm->m_heap.AssignArray(num.m_value,init);
+    uint64_t pointer = m_vm->m_heap.AssignArray(num.m_value,init);
     m_vm->m_op_stack.Push(pointer);
     m_PC++;
 }
@@ -178,7 +181,7 @@ void Interpreter::operator()(IObject & obj)
     OClass & Oclass = get<OClass>(m_vm->m_constant_pool[obj.m_index]);
     vector<OMethod*> methods;
     ROObject ROobj;
-    for (int32_t i = Oclass.m_length - 1; i >= 0; i--)
+    for (int16_t i = Oclass.m_length - 1; i >= 0; i--)
     {
         constant & cons = m_vm->m_constant_pool[Oclass.m_members[i]];
         if (OSlot * oSlot = get_if<OSlot>(&cons))
@@ -202,7 +205,7 @@ void Interpreter::operator()(IObject & obj)
 void Interpreter::operator()(IGet_Field & getField) 
 {
     OString & str = get<OString>(m_vm->m_constant_pool[getField.m_index]);
-    uint32_t pointer = m_vm->m_op_stack.Get();
+    uint64_t pointer = m_vm->m_op_stack.Get();
     m_vm->m_op_stack.Pop();
     pointer = m_vm->m_heap.GetSetField(pointer,str.m_characters);
     m_vm->m_op_stack.Push(pointer);
@@ -212,9 +215,9 @@ void Interpreter::operator()(IGet_Field & getField)
 void Interpreter::operator()(ISet_Field & setField) 
 {
     OString & str = get<OString>(m_vm->m_constant_pool[setField.m_index]);
-    uint32_t value = m_vm->m_op_stack.Get();
+    uint64_t value = m_vm->m_op_stack.Get();
     m_vm->m_op_stack.Pop();
-    uint32_t object = m_vm->m_op_stack.Get();
+    uint64_t object = m_vm->m_op_stack.Get();
     m_vm->m_op_stack.Pop();
     m_vm->m_heap.GetSetField(object,str.m_characters,value,false);
     m_vm->m_op_stack.Push(value);
@@ -224,14 +227,14 @@ void Interpreter::operator()(ISet_Field & setField)
 void Interpreter::operator()(ICall_Method & callMethod) 
 {
     OString & str = get<OString>(m_vm->m_constant_pool[callMethod.m_index]);
-    vector<uint32_t> args;
+    vector<uint64_t> args;
     for (uint8_t i = callMethod.m_arguments - 1; i > 0; i--)
     {
-        uint32_t arg = m_vm->m_op_stack.Get(i);
+        uint64_t arg = m_vm->m_op_stack.Get(i);
         args.push_back(arg);
     }
     m_vm->m_op_stack.Pop(callMethod.m_arguments - 1);
-    uint32_t point_rec = m_vm->m_op_stack.Get();
+    uint64_t point_rec = m_vm->m_op_stack.Get();
     runObj receiver = m_vm->m_heap.GetRunObject(point_rec);
     m_vm->m_op_stack.Pop();
 

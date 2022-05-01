@@ -1,7 +1,7 @@
 #include "OpStack.hpp"
 
 
-uint32_t OpStack::Get(int i) 
+uint64_t OpStack::Get(int i) 
 {
     int index = m_stack.size() - i;
     if (index < 0)
@@ -15,7 +15,7 @@ void OpStack::Pop(int i)
         m_stack.pop_back();
 }
 
-void OpStack::Push(uint32_t i) 
+void OpStack::Push(uint64_t i) 
 {
     m_stack.push_back(i);
 }
