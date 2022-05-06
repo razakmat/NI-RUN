@@ -171,7 +171,7 @@ void Interpreter::operator()(IArray & arr)
     ROInteger num = get<ROInteger>(obj);
     if (num.m_value < 0)
         throw "Error : Size of array cannot be negative.";
-    uint64_t pointer = m_vm->m_heap.AssignArray(num.m_value,init);
+    uint64_t pointer = m_vm->m_heap.AssignArray(num.m_value,init,this);
     m_vm->m_op_stack.Push(pointer);
     m_PC++;
 }
@@ -181,6 +181,7 @@ void Interpreter::operator()(IObject & obj)
     OClass & Oclass = get<OClass>(m_vm->m_constant_pool[obj.m_index]);
     vector<OMethod*> methods;
     ROObject ROobj;
+    ROobj.m_size = 8;
     for (int16_t i = Oclass.m_length - 1; i >= 0; i--)
     {
         constant & cons = m_vm->m_constant_pool[Oclass.m_members[i]];
@@ -189,16 +190,18 @@ void Interpreter::operator()(IObject & obj)
             OString & name = get<OString>(m_vm->m_constant_pool[oSlot->m_name]);
             ROobj.m_fields.insert({name.m_characters,m_vm->m_op_stack.Get()});
             m_vm->m_op_stack.Pop();
+            ROobj.m_size += name.m_characters.size() + 8 + 1;
         }
         if (OMethod * oMethod = get_if<OMethod>(&cons))
         {
             OString & name = get<OString>(m_vm->m_constant_pool[oMethod->m_name]);
             ROobj.m_methods.insert({name.m_characters,Oclass.m_members[i]});
+            ROobj.m_size += name.m_characters.size() + 2 + 1;
         }
     }
     ROobj.m_parent = m_vm->m_op_stack.Get();
     m_vm->m_op_stack.Pop();
-    m_vm->m_op_stack.Push(m_vm->m_heap.AssignObject(ROobj));
+    m_vm->m_op_stack.Push(m_vm->m_heap.AssignObject(ROobj,this));
     m_PC++;
 }
 
@@ -272,6 +275,12 @@ void Interpreter::operator()(ICall_Method & callMethod)
             break;
         }
     }
+}
+
+void Interpreter::GetRoots(stack<uint64_t> & roots)
+{
+    m_vm->m_op_stack.GetRoots(roots);
+    m_vm->m_frame_stack.GetRoots(roots);
 }
 
 void Interpreter::print_out(int16_t args,const string & str)

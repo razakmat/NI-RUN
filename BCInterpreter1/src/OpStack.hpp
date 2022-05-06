@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <stack>
 
 using namespace std;
 
@@ -12,6 +13,7 @@ class OpStack
         uint64_t Get(int i = 1);
         void Pop(int i = 1);
         void Push(uint64_t i);
+        void GetRoots(stack<uint64_t> & roots);
     private:
     vector<uint64_t> m_stack;
 };

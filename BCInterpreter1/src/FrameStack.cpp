@@ -18,7 +18,7 @@ FrameStack::~FrameStack()
 void FrameStack::PushStack(int i) 
 {
     Frame * cur = new Frame();
-    cur->m_locals.reserve(i);
+    cur->m_locals.resize(i,3);
     cur->m_prev = m_local;
     m_local = cur;
 }
@@ -62,11 +62,34 @@ uint64_t FrameStack::GetGlobal(const string & name)
 {
     auto it = m_global.m_GlobalMap.find(name);
     if (it == m_global.m_GlobalMap.end())
-        throw "Error : Global variable " + name + " was not found.";
+    {
+        auto it1 = m_global_fun.m_GlobalMap.find(name);
+        if (it1 == m_global_fun.m_GlobalMap.end())
+            throw "Error : Global variable " + name + " was not found.";
+        return it1->second;
+    }
     return it->second;
 }
 
 void FrameStack::InsertGlobal(const string & name, uint64_t index) 
 {
     m_global.m_GlobalMap.insert({name,index});
+}
+
+void FrameStack::InsertGlobalFun(const string & name, uint16_t index)
+{
+    m_global_fun.m_GlobalMap.insert({name,index});
+}
+
+void FrameStack::GetRoots(stack<uint64_t> & roots)
+{
+    for (auto & x : m_global.m_GlobalMap)
+        roots.push(x.second);
+    Frame * now = m_local;
+    while (now != nullptr)
+    {
+        for (auto & x : now->m_locals)
+            roots.push(x);
+        now = now->m_prev;
+    }
 }

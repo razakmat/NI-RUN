@@ -15,6 +15,7 @@ using namespace std;
 class FMLVM
 {
     public:
+        FMLVM(int heap_size = 0): m_heap(heap_size){}
         vector<constant> m_constant_pool;
         vector<ins> m_instructions;
         uint16_t m_entry_point;

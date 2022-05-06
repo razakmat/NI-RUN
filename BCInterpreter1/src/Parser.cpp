@@ -195,7 +195,7 @@ void Parser::ReadGlobals(FMLVM * memory)
         {
             OString & str = get<OString>(memory->m_constant_pool[
                 get<OMethod>(memory->m_constant_pool[index]).m_name]);
-            memory->m_frame_stack.InsertGlobal(str.m_characters,index);
+            memory->m_frame_stack.InsertGlobalFun(str.m_characters,index);
         }
         else
             throw "Error: Globals can contain only methods and slots.";

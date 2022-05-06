@@ -1,7 +1,13 @@
 #!/bin/bash
+
+ARG2=${3:-0}
+ARG3=${4:-0}
+ARG4=${5:-0}
+ARG5=${6:-0}
+
 if [ $1 = "execute" ]
 then
-    ./interpreter $2
+    ./interpreter $2 $ARG2 $ARG3 $ARG4 $ARG5
 else
     echo "Unknown command: $1. Supported commands: execute"
 fi

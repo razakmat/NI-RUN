@@ -45,6 +45,7 @@ struct ROObject : public RuntimeObject
     uint64_t m_parent;
     map<string,uint64_t> m_fields;
     map<string,uint16_t> m_methods;
+    uint64_t m_size;
 };
 
 using runObj = variant<ROInteger,ROBoolean,RONull,ROArray,ROObject>;

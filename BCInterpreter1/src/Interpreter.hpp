@@ -4,6 +4,7 @@
 #include "FMLVM.hpp"
 #include "OpStack.hpp"
 #include <vector>
+#include <stack>
 
 using namespace std;
 
@@ -33,6 +34,7 @@ class Interpreter
 
         template <typename A>
         void operator()(A & pok);
+        void GetRoots(stack<uint64_t> & roots);
     private:
         void print_out(int16_t args,const string & str);
         FMLVM * m_vm;

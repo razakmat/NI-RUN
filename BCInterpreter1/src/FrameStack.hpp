@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include <stack>
 #include <unordered_map>
 
 using namespace std;
@@ -23,6 +24,8 @@ class FrameStack
         void SetGlobal(const string & name, uint64_t pointer);
         uint64_t GetGlobal(const string & name);
         void InsertGlobal(const string & name, uint64_t index);
+        void InsertGlobalFun(const string & name, uint16_t index);
+        void GetRoots(stack<uint64_t> & roots);
     private:
         struct Frame{
             vector<uint64_t> m_locals;
@@ -33,6 +36,7 @@ class FrameStack
             unordered_map<string,uint64_t> m_GlobalMap;
         };        
         GlobalFrame m_global;
+        GlobalFrame m_global_fun;
         Frame * m_local = nullptr;
 
 };

@@ -19,3 +19,9 @@ void OpStack::Push(uint64_t i)
 {
     m_stack.push_back(i);
 }
+
+void OpStack::GetRoots(stack<uint64_t> & roots)
+{
+    for (auto & x : m_stack)
+        roots.push(x);
+}
